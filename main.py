@@ -33,6 +33,8 @@ class Laser:
         self.y += vel
     def off_screen(self, height):
         return self.y > height or self.y < 0
+    def collision(self, obj):
+        return collide(obj, self)
 
 
 
@@ -55,6 +57,9 @@ class Ship:
         for laser in self.lasers:
             laser.move(vel)
             if laser.off_screen(HEIGHT):
+                self.lasers.remove(laser)
+            elif laser.collision(obj):
+                obj.health -= 10
                 self.lasers.remove(laser)
     def get_width(self):
         return self.ship_img.get_width()
@@ -86,6 +91,11 @@ class Player(Ship):
             laser.move(vel)
             if laser.off_screen(HEIGHT):
                 self.lasers.remove(laser)
+            else:
+                for obj in objs:
+                    if laser.collision(obj):
+                        objs.remove(obj)
+                        self.lasers.remove(laser)
     def healthbar(self, window):
         pygame.draw.rect(window, (255, 0, 0), (self.x, self.y + self.ship_img.get_height() + 10, self.ship_img.get_width(), 15))
         pygame.draw.rect(window, (0, 255, 0), (self.x, self.y + self.ship_img.get_height() + 10, self.ship_img.get_width() * (self.health / self.max_health), 15))
@@ -107,6 +117,13 @@ class Enemy(Ship):
         self.mask = pygame.mask.from_surface(self.ship_img)
     def move(self, vel):
         self.y += vel
+
+
+
+def collide(obj1, obj2):
+    offset_x = obj2.x - obj1.x
+    offset_y = obj2.y - obj1.y
+    return obj1.mask.overlap(obj2.mask, (offset_x, offset_y)) != None
 
 
 
@@ -178,12 +195,16 @@ def main():
         for enemy in enemies[:]:
             enemy.move(enemy_vel)
             enemy.move_lasers(laser_vel, player)
+            if collide(enemy, player):
+                player.health -= 10
+                enemies.remove(enemy)
             if random.randrange(0, 100) == 1:
                 enemy.shoot()
             if enemy.y + enemy.get_height() > HEIGHT:
                 lives -= 1
                 enemies.remove(enemy)
         player.move_lasers(-laser_vel, enemies)
+    
     
 
 
