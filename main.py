@@ -20,6 +20,7 @@ WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Space Invaders")
 
 
+
 class Ship:
     COOLDOWN = 30
     def __init__(self, x, y, health=100):
@@ -34,10 +35,24 @@ class Ship:
         window.blit(self.ship_img, (self.x, self.y))
         for laser in self.lasers:
             laser.draw(window)
+    def move_lasers(self, vel, obj):
+        self.cooldown()
+        for laser in self.lasers:
+            laser.move(vel)
+            if laser.off_screen(HEIGHT):
+                self.lasers.remove(laser)
+            elif laser.collision(obj):
+                obj.health -= 10
+                self.lasers.remove(laser)
     def get_width(self):
         return self.ship_img.get_width()
     def get_height(self):
         return self.ship_img.get_height()
+    def cooldown(self):
+        if self.cool_down_counter >= self.COOLDOWN:
+            self.cool_down_counter = 0
+        elif self.cool_down_counter > 0:
+            self.cool_down_counter += 1
 
 
 
@@ -48,20 +63,48 @@ class Player(Ship):
         self.laser_img = YELLOW_LASER
         self.mask = pygame.mask.from_surface(self.ship_img)
         self.max_health = health
+    def move_lasers(self, vel, objs):
+        self.cooldown()
+        for laser in self.lasers:
+            laser.move(vel)
+            if laser.off_screen(HEIGHT):
+                self.lasers.remove(laser)
+            else:
+                 for obj in objs:
+                    if laser.collision(obj):
+                        objs.remove(obj)
+                        self.lasers.remove(laser)
     def healthbar(self, window):
         pygame.draw.rect(window, (255, 0, 0), (self.x, self.y + self.ship_img.get_height() + 10, self.ship_img.get_width(), 15))
         pygame.draw.rect(window, (0, 255, 0), (self.x, self.y + self.ship_img.get_height() + 10, self.ship_img.get_width() * (self.health / self.max_health), 15))
     def draw(self, window):
         super().draw(window)
         self.healthbar(window)
-                
+
+
+
+class Enemy(Ship):
+    COLOR_MAP = {
+        "red": (RED_SPACE_SHIP, RED_LASER),
+        "green": (GREEN_SPACE_SHIP, GREEN_LASER),
+        "blue": (BLUE_SPACE_SHIP, BLUE_LASER)
+    }
+    def __init__(self, x, y, color, health=100):
+        super().__init__(x, y, health)
+        self.ship_img, self.laser_img = self.COLOR_MAP[color]
+        self.mask = pygame.mask.from_surface(self.ship_img)
+    def move(self, vel):
+        self.y += vel
+
 
 
 def main():
     run = True
     FPS = 60
     player = Player(300, 500)
+    enemies = []
     wave_lenght = 0
+    enemy_vel = 1
     level = 0
     lives = 5
     player_vel = 5
@@ -70,6 +113,7 @@ def main():
     clock = pygame.time.Clock()
     lost = False
     lost_count = 0
+    laser_vel = 4
     
     def redraw_window():
         WIN.blit(BG, (0, 0))
@@ -78,6 +122,8 @@ def main():
         WIN.blit(lives_label, (10, 10))
         WIN.blit(level_label, (610, 10))
         player.draw(WIN)
+        for enemy in enemies:
+            enemy.draw(WIN)
         if lost:
             lost_label = lost_font.render("You Lost!", 1, (255, 255, 255))
             WIN.blit(lost_label, (WIDTH / 2 - lost_label.get_width() / 2, HEIGHT / 2 - lost_label.get_height() / 2))
@@ -94,6 +140,12 @@ def main():
                 run = False
             else:
                 continue
+        if len(enemies) == 0:
+            level += 1
+            wave_lenght += 5
+            for _ in range(wave_lenght):
+                enemy = Enemy(random.randrange(50, WIDTH - 100), random.randrange(-1200, -100), random.choice(["red", "blue", "green"]))
+                enemies.append(enemy)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 quit()
@@ -107,7 +159,13 @@ def main():
             player.y -= player_vel
         if keys[pygame.K_s] and player.y + player.get_height() + 20 + player_vel <= HEIGHT:
             player.y += player_vel
-
+            
+        for enemy in enemies[:]:
+            enemy.move(enemy_vel)
+            if enemy.y + enemy.get_height() > HEIGHT:
+                lives -= 1
+                enemies.remove(enemy)
+    
 
 
 
