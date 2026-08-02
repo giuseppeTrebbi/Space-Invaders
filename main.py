@@ -1,6 +1,5 @@
 import pygame
-import os
-import time 
+import os 
 import random
 pygame.font.init()
 
@@ -204,11 +203,28 @@ def main():
                 lives -= 1
                 enemies.remove(enemy)
         player.move_lasers(-laser_vel, enemies)
-    
+
+
+
+def main_menu():
+    run = True
+    title_font = pygame.font.SysFont("comicsans", 60)
+    while run:
+        WIN.blit(BG, (0, 0))
+        title_label = title_font.render("Press mouse button", 1, (255, 255, 255))
+        WIN.blit(title_label, (WIDTH / 2 - title_label.get_width() / 2, HEIGHT / 2 - title_label.get_height() / 2))
+        pygame.display.update()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                main()
+    pygame.quit()
     
 
 
-main()
+
+main_menu()
 
 
 
